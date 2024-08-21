@@ -398,7 +398,7 @@ class OcrCallback(QObject):
         self.process.readyReadStandardError.connect(partial(handle_stderr, self))
         self.process.finished.connect(self.ocr_finished)
         self.process.readyRead.connect(self.ocr_data_read)
-        self.i_crop = 0
+        self.i_ocr = 0
         sublist = self.ocr_job_list[0]
         del self.ocr_job_list[0]
                     
