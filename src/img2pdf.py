@@ -683,13 +683,24 @@ class QImgToPDF(QWidget):
         self.crop_callback.start()
 
     def stop_crop(self):
-        self.crop_callback.stop()
+        try:
+            self.crop_callback.stop()
+        except Exception as e:
+            self.global_msg.appendPlainText(str(e))
         
     def merge_pdf(self):
-        pdf_path = Path(get_new_folder(None))
-        if pdf_path:
+    
+        new_path = get_new_folder(None)
+        
+        if new_path: 
+            pdf_path = Path(new_path)
+            
             pdf_files = [str(Path.joinpath(pdf_path, f)) 
                          for f in pdf_path.glob("*.pdf") if f.is_file()]
+            if len(paf_files) == 0:
+                msg.message_box("Warning: No PDF files!")
+                return
+                
             self.global_msg.appendPlainText("=> %d PDF files found"%len(pdf_files))
             self.global_msg.appendPlainText("=> Start merge")
 
@@ -709,7 +720,10 @@ class QImgToPDF(QWidget):
         self.ocr_callback.start()
         
     def stop_ocr(self):
-        self.ocr_callback.stop()
+        try: 
+            self.ocr_callback.stop()
+        except Exception as e:
+            self.global_msg.appendPlainText(str(e))
         
     def print_concurrent_message(self, msg):
         self.global_msg.appendPlainText(msg)
@@ -735,7 +749,10 @@ class QImgToPDF(QWidget):
         self.crop_src_format.findText(self.crop_setting.src_format))
         self.crop_dest_format.setCurrentIndex(
         self.crop_src_format.findText(self.crop_setting.dest_format))
-        os.chdir(self.crop_setting.src_path)
+        try:
+            os.chdir(self.crop_setting.src_path)
+        except Exception as e:
+            msg.message_box("Error: set_crop_settings\n%s"%str(e), msg.message_warning)
         
     def get_ocr_settings(self):
         self.ocr_setting.src_path = self.src_ocr_img_path.text()
