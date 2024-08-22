@@ -45,7 +45,7 @@ def check_imagemagick():
 def check_tesseract():
     pass
     
-def get_new_folder(new_path):
+def get_new_folder(new_path, change_dir):
     startingDir = os.getcwd() 
     path = QFileDialog.getExistingDirectory(None, 'New folder', startingDir, 
     QFileDialog.ShowDirsOnly)
@@ -53,6 +53,8 @@ def get_new_folder(new_path):
     
     if isinstance(new_path, QLineEdit): 
         new_path.setText(path)
+        if change_dir:
+            os.chdir(path)
         return
     return path
 
@@ -444,7 +446,7 @@ class QImgToPDF(QWidget):
         self.set_src_crop_img_path_btn.setIcon(QIcon(QPixmap(icon_folder_open.table)))
         self.set_src_crop_img_path_btn.setIconSize(QSize(16,16))
         self.set_src_crop_img_path_btn.setToolTip("Change source folder")
-        self.set_src_crop_img_path_btn.clicked.connect(partial(get_new_folder, self.src_crop_img_path))
+        self.set_src_crop_img_path_btn.clicked.connect(partial(get_new_folder, self.src_crop_img_path, True))
         
         self.paste_curpath_srccropimgpath_btn = QPushButton()
         self.paste_curpath_srccropimgpath_btn.setIcon(QIcon(QPixmap(icon_copy_src_path.table)))
@@ -464,7 +466,7 @@ class QImgToPDF(QWidget):
         self.set_dest_crop_img_path_btn.setIcon(QIcon(QPixmap(icon_folder_open.table)))
         self.set_dest_crop_img_path_btn.setIconSize(QSize(16,16))
         self.set_dest_crop_img_path_btn.setToolTip("Change dest folder")
-        self.set_dest_crop_img_path_btn.clicked.connect(partial(get_new_folder, self.dest_crop_img_path))
+        self.set_dest_crop_img_path_btn.clicked.connect(partial(get_new_folder, self.dest_crop_img_path, False))
        
         self.paste_curpath_destcropimgpath_btn = QPushButton()
         self.paste_curpath_destcropimgpath_btn.setIcon(QIcon(QPixmap(icon_copy_src.table)))
@@ -548,7 +550,7 @@ class QImgToPDF(QWidget):
         self.set_src_ocr_img_path_btn.setIcon(QIcon(QPixmap(icon_folder_open.table)))
         self.set_src_ocr_img_path_btn.setIconSize(QSize(16,16))
         self.set_src_ocr_img_path_btn.setToolTip("Change OCR source folder")
-        self.set_src_ocr_img_path_btn.clicked.connect(partial(get_new_folder, self.src_ocr_img_path))
+        self.set_src_ocr_img_path_btn.clicked.connect(partial(get_new_folder, self.src_ocr_img_path, False))
         
         self.paste_curpath_srcocrimgpath_btn = QPushButton()
         self.paste_curpath_srcocrimgpath_btn.setIcon(QIcon(QPixmap(icon_copy_src.table)))
@@ -569,7 +571,7 @@ class QImgToPDF(QWidget):
         self.set_dest_ocr_pdf_path_btn.setIcon(QIcon(QPixmap(icon_folder_open.table)))
         self.set_dest_ocr_pdf_path_btn.setIconSize(QSize(16,16))
         self.set_dest_ocr_pdf_path_btn.setToolTip("Change OCR dest folder")
-        self.set_dest_ocr_pdf_path_btn.clicked.connect(partial(get_new_folder, self.dest_ocr_pdf_path))
+        self.set_dest_ocr_pdf_path_btn.clicked.connect(partial(get_new_folder, self.dest_ocr_pdf_path, False))
        
         self.paste_curpath_destocrpdfpath_btn = QPushButton()
         self.paste_curpath_destocrpdfpath_btn.setIcon(QIcon(QPixmap(icon_copy_src.table)))
