@@ -30,7 +30,7 @@ from icons import (
         icon_folder_open  , icon_capture, icon_refresh, 
         icon_copy_src_path, icon_start  , icon_stop,
         icon_setting      , icon_pdf    , icon_copy,
-        icon_delete       , icon_copy_src 
+        icon_delete       , icon_copy_src, icon_ocr
         )
 
 _find_error = re.compile("Error|error|unable", re.MULTILINE)
@@ -665,7 +665,7 @@ class QImgToPDF(QWidget):
         
         self.setLayout(layout)
         self.setWindowTitle("Img2Pdf")
-        self.setWindowIcon(QIcon(QPixmap(icon_capture.table)))
+        self.setWindowIcon(QIcon(QPixmap(icon_ocr.table)))
         self.show()
 
     def clear_message_box(self):
