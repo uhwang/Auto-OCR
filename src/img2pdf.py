@@ -19,7 +19,7 @@ from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import ( 
         QApplication, QWidget    , QStyleFactory , QGroupBox, 
         QPushButton , QLineEdit  , QPlainTextEdit, QLineEdit,
-        QComboBox   , QGridLayout, QVBoxLayout   , 
+        QComboBox   , QGridLayout, QVBoxLayout   , QFileDialog,
         QHBoxLayout , QFormLayout, QFileDialog   , 
         QMessageBox , QLabel     , QCheckBox     ,
         )
@@ -33,6 +33,8 @@ from icons import (
         icon_delete       , icon_copy_src, icon_ocr
         )
 
+import ocroption
+        
 _find_error = re.compile("Error|error|unable", re.MULTILINE)
 _default_crop_app = "magick"
 _default_tesseract = r'C:\\Program Files\Tesseract-OCR\\tesseract.exe'
@@ -128,6 +130,7 @@ class OcrSetting():
         self.src_path    = setting["src_path"]
         self.dest_path   = setting["dest_path"]
         self.tesseract_path = setting["tesseract_path"]
+
         
 def save_settings(exec_path, settings):
     
@@ -181,9 +184,9 @@ def merge_pdf_files(pdf_list, dest_pdf):
 class CropCallback(QObject):
     print_message  = pyqtSignal(str)
     
-    def __init__(self, options):
+    def __init__(self, settings):
         super(CropCallback, self).__init__()
-        self.options = options
+        self.settings = settings
         self.process = None
         self.crop_stopped = False
         self.i_crop = 0
@@ -224,9 +227,9 @@ class CropCallback(QObject):
             self.delete_job_list()
                                 
     def start(self):
-        path1 = Path(self.options.src_path)
-        ext   = self.options.src_format
-        path2 = Path(self.options.dest_path)
+        path1 = Path(self.settings.src_path)
+        ext   = self.settings.src_format
+        path2 = Path(self.settings.dest_path)
         
         self.print_message.emit("=> List all files")
         files = [f for f in path1.glob("*.%s"%ext) if f.is_file()]
@@ -235,8 +238,8 @@ class CropCallback(QObject):
         
         if nfiles == 0:
             self.print_message.emit("=> Error: no files to crop")
-            self.print_message.emit("=> Path : %s"%self.options.src_path)
-            self.print_message.emit("=> Ext  : %s"%self.options.src_format)
+            self.print_message.emit("=> Path : %s"%self.settings.src_path)
+            self.print_message.emit("=> Ext  : %s"%self.settings.src_format)
             self.stop()
             return 
         
@@ -259,12 +262,12 @@ class CropCallback(QObject):
         self.print_message.emit("=> Create crop job list")
         for fn in files:
             arg_list =[
-                self.options.crop_app_path,
+                self.settings.crop_app_path,
                 str(fn), 
                 "-crop",
-                "+%s+%s"%(self.options.left,self.options.top),
+                "+%s+%s"%(self.settings.left,self.settings.top),
                 "-crop",
-                "-%s-%s"%(self.options.right,self.options.bottom),
+                "-%s-%s"%(self.settings.right,self.settings.bottom),
                 str(Path.joinpath(path2, "%s-crop.%s"%(fn.stem, ext)))
                 #str(Path.joinpath(path2, "%s-crop.%s"%(fn.stem, ext)))
                 #    if path2.is_absolute() else
@@ -302,8 +305,9 @@ class CropCallback(QObject):
 class OcrCallback(QObject):
     print_message  = pyqtSignal(str)
     
-    def __init__(self, options):
+    def __init__(self, settings, options):
         super(OcrCallback, self).__init__()
+        self.settings = settings
         self.options = options
         self.process = None
         self.ocr_stopped = False
@@ -333,8 +337,8 @@ class OcrCallback(QObject):
                 self.print_message.emit("=> Start PDF Merge")
                 try:
                     merge_pdf_files(self.pdf_list, 
-                            str(Path.joinpath(Path(self.options.dest_path),
-                                    "%s.pdf"%self.options.pdf_fname)))
+                            str(Path.joinpath(Path(self.settings.dest_path),
+                                    "%s.pdf"%self.settings.pdf_fname)))
                 except Exception as e:
                     self.print_message.emit("... Error::ocr_finished::merge_pdf_files"\
                                             "%s"%str(e))
@@ -356,13 +360,27 @@ class OcrCallback(QObject):
             self.delete_job_list()
      
     def start(self):
-        path1 = Path(self.options.src_path)
-        path2 = Path(self.options.dest_path)
+        path1 = Path(self.settings.src_path)
+        path2 = Path(self.settings.dest_path)
         
         self.print_message.emit("=> List all files")
-        files = [f for f in path1.glob("*.*") 
-                    if f.is_file() and f.suffix.lower() != ".pdf"]
+        
+        if isinstance(self.options.source_files, list):
+            files = self.options.source_files
+        else:
+            if self.options.input_type == ocroption.source_input_type_folder:
+                files = [f for f in path1.glob("*.*") 
+                            if f.is_file() and f.suffix.lower() != ".pdf"]
+            else:
+                files = []
+                if self.options.source_type == ocroption.source_type_jpg:
+                    jpg_files = [f for f in path1.glob("*.jpg") if f.is_file()]
+                    files.extend(jpg_files)
                     
+                if self.options.source_type == ocroption.source_type_png:
+                    png_files = [f for f in path1.glob("*.png") if f.is_file()]
+                    files.extend(png_files)
+                
         self.print_message.emit("=> %d files"%len(files))        
         self.print_message.emit("=> Check output folder: %s"%str(path2))
         
@@ -386,7 +404,7 @@ class OcrCallback(QObject):
         for fn in files:
             self.pdf_list.append(str(Path.joinpath(path1,"%s.pdf"%str(fn.stem))))
             arg_list =[
-                self.options.tesseract_path,
+                self.settings.tesseract_path,
                 str(Path.joinpath(path1,fn)),
                 str(Path.joinpath(path1,fn.stem)),
                 "pdf"
@@ -428,6 +446,8 @@ class QImgToPDF(QWidget):
         self.cur_path = Path().absolute()
         self.crop_setting = CropSetting()
         self.ocr_setting = OcrSetting()
+        self.ocr_option = ocroption.OcrOption()
+        
         self.initUI()
         if load_config(self.cur_path, [self.crop_setting, self.ocr_setting]):
             self.set_crop_settings()
@@ -677,7 +697,17 @@ class QImgToPDF(QWidget):
     def set_crop_setting_dlg(self):
         pass
     def set_ocr_setting_dlg(self):
-        pass
+        
+        dlg = ocroption.OcrOptioinDlg(self.ocr_option)
+        res = dlg.exec()
+        if res == 0: return
+        else:
+            source_info = dlg.get_option()
+            self.ocr_option.input_type = source_info[0]
+            self.ocr_option.source_type = source_info[1:]
+            self.global_msg.appendPlainText("... Input Type: %s\n... Source Type: %s"%
+            (source_info[0],source_info[1:]))
+        
     def start_crop(self):
         self.get_crop_settings()
         self.crop_callback = CropCallback(self.crop_setting)
@@ -716,10 +746,28 @@ class QImgToPDF(QWidget):
                 self.global_msg.appendPlainText("=> Success")
                 
     def start_ocr(self):
-        self.get_ocr_settings()
-        self.ocr_callback = OcrCallback(self.ocr_setting)
-        self.ocr_callback.print_message.connect(self.print_concurrent_message)
-        self.ocr_callback.start()
+        if self.ocr_option.input_type == ocroption.source_input_type_folder:
+            self.get_ocr_settings()
+            self.ocr_callback = OcrCallback(self.ocr_setting, self.ocr_option)
+            self.ocr_callback.print_message.connect(self.print_concurrent_message)
+            self.ocr_callback.start()
+        # process OCR for individual files
+        else:
+            # choose individual image files 
+            source_path = self.src_ocr_img_path.text()
+            if source_path == '':
+                source_path = os.getcwd()
+            files = QFileDialog.getOpenFileNames(self, 
+                    "Choose Image Files", source_path, 
+                    filter="Images (*.jpg *.png);;All files (*.*)")
+       
+            if files:
+                self.get_ocr_settings()
+                self.ocr_option.source_files = [Path(f) for f in files[0]]
+                self.ocr_callback = OcrCallback(self.ocr_setting, self.ocr_option)
+                self.ocr_callback.print_message.connect(self.print_concurrent_message)
+                self.ocr_callback.start()
+                self.ocr_option.source_files = None
         
     def stop_ocr(self):
         try: 
