@@ -165,9 +165,6 @@ class OcrOptioinDlg(QDialog):
                 self.source_jpg.setChecked(True)
                 self.source_png.setChecked(True)
 
-        self.source = []
-        
-        
     def get_option(self):
         source = []
         id = self.mood_AI_button_group.checkedId()
