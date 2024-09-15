@@ -1,19 +1,28 @@
 '''
 ocroption.py
-'''
 
-from PyQt5.QtCore import Qt, pyqtSignal, QObject, QProcess, QSize, QBasicTimer
+9/14/2024
+'''
+from pathlib import Path
+from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import ( 
-        QApplication, QWidget    , QStyleFactory , QGroupBox, 
-        QPushButton , QLineEdit  , QPlainTextEdit, QLineEdit,
-        QComboBox   , QGridLayout, QVBoxLayout   , QDialog,
+        QGroupBox, 
+        QPushButton , 
+        QLineEdit  , 
+        QGridLayout, QVBoxLayout   , QDialog,
         QHBoxLayout , QFormLayout, QFileDialog   , QRadioButton,
-        QMessageBox , QLabel     , QCheckBox     , QButtonGroup,
+        QLabel     , 
+        QCheckBox     , 
+        QButtonGroup,
         QDialogButtonBox
         )
 from functools import partial
-   
+from icons import icon_folder_open
+import setpath
+
+default_tesseract_path = Path("C:/Program Files/Tesseract-OCR/tesseract.exe")
+
 source_input_type_str = ["FOLDER", "FILE"]
 source_input_type_folder = source_input_type_str[0]
 source_input_type_file = source_input_type_str[1]
@@ -56,6 +65,21 @@ class OcrOptioinDlg(QDialog):
         
     def initUI(self):
         layout = QFormLayout()
+        
+        group = QGroupBox("Tesseract Path")
+        hlayout = QHBoxLayout()
+        hlayout.addWidget(QLabel("Tesseract"))
+        self.tesseract_path = QLineEdit(str(default_tesseract_path))
+        hlayout.addWidget(self.tesseract_path)
+        
+        self.tesseract_path_btn = QPushButton()
+        self.tesseract_path_btn.setIcon(QIcon(QPixmap(icon_folder_open.table)))
+        self.tesseract_path_btn.setIconSize(QSize(16,16))
+        self.tesseract_path_btn.setToolTip("Change Tesseract Path")
+        self.tesseract_path_btn.clicked.connect(partial(setpath.get_new_folder, self.tesseract_path, False))
+        hlayout.addWidget(self.tesseract_path_btn)
+        group.setLayout(hlayout)
+        layout.addRow(group)
         
         # Input Type: individual file or directory
         group = QGroupBox("Source Input Type")
@@ -113,7 +137,7 @@ class OcrOptioinDlg(QDialog):
         hlayout.addWidget(self.source_all)
         
         group.setLayout(hlayout)
-        layout.addWidget(group)
+        layout.addRow(group)
         
         group = QGroupBox()
         hlayout = QHBoxLayout()
@@ -122,8 +146,7 @@ class OcrOptioinDlg(QDialog):
         self.buttonBox.rejected.connect(self.reject)
         hlayout.addWidget(self.buttonBox)
         group.setLayout(hlayout)
-        
-        layout.addWidget(group)
+        layout.addRow(group)
         
         self.setLayout(layout)
         self.setWindowTitle("Ocr Options")
@@ -164,7 +187,10 @@ class OcrOptioinDlg(QDialog):
                 self.source_png.setEnabled(True)   
                 self.source_jpg.setChecked(True)
                 self.source_png.setChecked(True)
-
+    
+    def get_tessaract_path(self):
+        return self.tesseract_path.text()
+        
     def get_option(self):
         source = []
         id = self.mood_AI_button_group.checkedId()
