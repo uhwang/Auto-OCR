@@ -3,7 +3,13 @@ get and set folder
 
 9/15/2024
 '''
-
+#from PyQt5.QtCore import Qt, pyqtSignal, QObject, QProcess, QSize, QBasicTimer
+#from PyQt5.QtGui import QIcon, QPixmap
+import os
+from PyQt5.QtWidgets import ( 
+    QFileDialog, QLineEdit  
+    )
+        
 def get_new_folder(new_path, change_dir):
     startingDir = os.getcwd() 
     path = QFileDialog.getExistingDirectory(None, 'New folder', startingDir, 
