@@ -720,26 +720,37 @@ class QImgToPDF(QWidget):
                 msg.message_box("Warning: No PDF files!")
                 return
                 
+            # check if the final pdf file exist to avoid overwriting
+            pdf_file = Path.joinpath(Path(self.ocr_setting.dest_path), "%s.pdf"%self.ocr_setting.pdf_fname)
+            
+            if pdf_file.exists():
+                if msg.message_box("%s exist. Do you want to overwrite?"%str(pdf_file), 
+                                msg.message_yesandno) == QMessageBox.No: 
+                    return 
+                
             self.global_msg.appendPlainText("=> %d PDF files found"%len(pdf_files))
             self.global_msg.appendPlainText("=> Start merge")
 
             try:
-                merge_pdf_files(pdf_files, 
-                          str(Path.joinpath(Path(self.ocr_setting.dest_path), 
-                                            "%s.pdf"%self.ocr_setting.pdf_fname)))
+                merge_pdf_files(pdf_files, str(pdf_file))
             except Exception as e:
                 self.global_msg.appendPlainText("=> Error::merge_pdf\n%s"%str(e))
             else:    
                 self.global_msg.appendPlainText("=> Success")
                 
     def start_ocr(self):
-        if self.ocr_option.input_type == ocroption.source_input_type_folder:
-            self.get_ocr_settings()
-            self.ocr_callback = OcrCallback(self.ocr_setting, self.ocr_option)
-            self.ocr_callback.print_message.connect(self.print_concurrent_message)
-            self.ocr_callback.start()
+        self.get_ocr_settings()  
+
+        # check if the final pdf file exist to avoid overwriting
+        pdf_file = Path.joinpath(Path(self.ocr_setting.dest_path), "%s.pdf"%self.ocr_setting.pdf_fname)
+        
+        if pdf_file.exists():
+           if msg.message_box("%s exist. Do you want to overwrite?"%str(pdf_file), 
+                              msg.message_yesandno) == QMessageBox.No: 
+                return 
+        
         # process OCR for individual files
-        else:
+        if self.ocr_option.input_type == ocroption.source_input_type_file:
             # choose individual image files 
             source_path = self.src_ocr_img_path.text()
             if source_path == '':
@@ -749,12 +760,14 @@ class QImgToPDF(QWidget):
                     filter="Images (*.jpg *.png);;All files (*.*)")
        
             if files:
-                self.get_ocr_settings()
                 self.ocr_option.source_files = [Path(f) for f in files[0]]
-                self.ocr_callback = OcrCallback(self.ocr_setting, self.ocr_option)
-                self.ocr_callback.print_message.connect(self.print_concurrent_message)
-                self.ocr_callback.start()
-                self.ocr_option.source_files = None
+            else:
+                return
+                
+        self.ocr_callback = OcrCallback(self.ocr_setting, self.ocr_option)
+        self.ocr_callback.print_message.connect(self.print_concurrent_message)
+        self.ocr_callback.start()
+        self.ocr_option.source_files = None
         
     def stop_ocr(self):
         try: 
