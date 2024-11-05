@@ -12,7 +12,8 @@ import re
 import subprocess as sp
 from functools import partial
 from pathlib import Path
-from pypdf import PdfMerger
+#from pypdf import PdfMerger
+from pypdf import PdfWriter
 
 from PyQt5.QtCore import Qt, pyqtSignal, QObject, QProcess, QSize, QBasicTimer
 from PyQt5.QtGui import QIcon, QPixmap
@@ -23,7 +24,6 @@ from PyQt5.QtWidgets import (
         QHBoxLayout , QFormLayout, QFileDialog   , 
         QMessageBox , QLabel     , QCheckBox     ,
         )
-import pytesseract as ocr
 
 import msg
 from icons import (
@@ -159,13 +159,17 @@ def handle_stdout(job_class_obj):
     #job_class_obj.print_messag.emit(stdout)    
 
 def merge_pdf_files(pdf_list, dest_pdf):
-    merger = PdfMerger()
+    #merger = PdfMerger()
+    merger = PdfWriter()
 
     for p in pdf_list:
         merger.append(p)
     
-    merger.write(dest_pdf)
-    merger.close()
+    with open(dest_pdf, 'wb') as f:
+        merger.write(f)
+        
+    #merger.write(dest_pdf)
+    #merger.close()
             
 class CropCallback(QObject):
     print_message  = pyqtSignal(str)
@@ -709,14 +713,14 @@ class QImgToPDF(QWidget):
         
     def merge_pdf(self):
     
-        new_path = setpath.get_new_folder(None)
+        new_path = setpath.get_new_folder(None, True)
         
         if new_path: 
             pdf_path = Path(new_path)
             
             pdf_files = [str(Path.joinpath(pdf_path, f)) 
                          for f in pdf_path.glob("*.pdf") if f.is_file()]
-            if len(paf_files) == 0:
+            if len(pdf_files) == 0:
                 msg.message_box("Warning: No PDF files!")
                 return
                 
