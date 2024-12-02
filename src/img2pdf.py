@@ -724,12 +724,13 @@ class QImgToPDF(QWidget):
                 msg.message_box("Warning: No PDF files!")
                 return
                 
+            self.get_ocr_settings()
             # check if the final pdf file exist to avoid overwriting
             pdf_file = Path.joinpath(Path(self.ocr_setting.dest_path), "%s.pdf"%self.ocr_setting.pdf_fname)
             
             if pdf_file.exists():
                 if msg.message_box("%s exist. Do you want to overwrite?"%str(pdf_file), 
-                                msg.message_yesandno) == QMessageBox.No: 
+                                msg.message_yesno) == QMessageBox.No: 
                     return 
                 
             self.global_msg.appendPlainText("=> %d PDF files found"%len(pdf_files))
@@ -740,7 +741,7 @@ class QImgToPDF(QWidget):
             except Exception as e:
                 self.global_msg.appendPlainText("=> Error::merge_pdf\n%s"%str(e))
             else:    
-                self.global_msg.appendPlainText("=> Success")
+                self.global_msg.appendPlainText("=> Success\n=> Saved at %s"%str(pdf_file))
                 
     def start_ocr(self):
         self.get_ocr_settings()  
