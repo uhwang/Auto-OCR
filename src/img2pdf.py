@@ -33,13 +33,11 @@ from icons import (
         icon_delete       , icon_copy_src, icon_ocr
         )
 
-import ocroption, setpath
+import cropsettingdlg, ocrsettingdlg, cropsetting, ocrsetting, setpath
         
 _find_error = re.compile("Error|error|unable", re.MULTILINE)
-_default_crop_app = "magick"
-_default_tesseract = r'C:\\Program Files\Tesseract-OCR\\tesseract.exe'
 
- 
+
 def check_imagemagick():
     pass
     
@@ -56,67 +54,6 @@ def paste_cur_path(cur_path, new_path):
         new_path = cur_path
     else:
         return None
- 
-class CropSetting():
-    def __init__(self):
-        self.timer_duration = 1000 # 1 second
-        self.src_path = ".\\"
-        self.dest_path = "crop"
-        self.left = 10
-        self.top = 10
-        self.right = 10
-        self.bottom = 10
-        self.src_format = "PNG"
-        self.dest_format = "JPG"
-        self.crop_app_path = _default_crop_app
-        
-    def dump(self):
-        return {
-        "timer_duration": self.timer_duration,
-        "src_path"      : "%s"%self.src_path,
-        "dest_path"     : "%s"%self.dest_path,
-        "left"          : self.left,
-        "top"           : self.top,
-        "right"         : self.right,
-        "bottom"        : self.bottom,
-        "src_format"    : "%s"%self.src_format,
-        "dest_format"   : "%s"%self.dest_format,
-        "crop_app_path" : "%s"%self.crop_app_path
-        }
-        
-    def load(self, setting):
-        self.timer_duration = int(setting["timer_duration"])
-        self.src_path    = setting["src_path"]
-        self.dest_path   = setting["dest_path"]
-        self.left        = int(setting["left"])
-        self.top         = int(setting["top"])
-        self.right       = int(setting["right"])
-        self.bottom      = int(setting["bottom"])
-        self.src_format  = setting["src_format"]
-        self.dest_format = setting["dest_format"]
-        self.crop_app_path = setting["crop_app_path"]
- 
-class OcrSetting():
-    def __init__(self):
-        self.pdf_fname = "output"
-        self.src_path = ""
-        self.dest_path = "crop"
-        self.tesseract_path = _default_tesseract
-
-    def dump(self):
-        return {
-        "pdf_fname"     : self.pdf_fname,
-        "src_path"      : self.src_path,
-        "dest_path"     : self.dest_path,
-        "tesseract_path": self.tesseract_path
-        }
-        
-    def load(self, setting):
-        self.pdf_fname   = setting["pdf_fname"]
-        self.src_path    = setting["src_path"]
-        self.dest_path   = setting["dest_path"]
-        self.tesseract_path = setting["tesseract_path"]
-
         
 def save_settings(exec_path, settings):
     
@@ -250,7 +187,18 @@ class CropCallback(QObject):
         self.crop_job_list = []
         
         self.print_message.emit("=> Create crop job list")
-        for fn in files:
+        if isinstance(self.settings.crop_range, str):
+            _files = files
+            start, end = 0, nfiles
+        else:
+            rr = self.settings.crop_range
+            start, end = rr[0], rr[1]
+            if start < 0 or end > nfiles:
+                self.print_message.emit(f"... Error: invalid range {rr}")
+                return
+            _files = files[start:end]
+            
+        for fn in _files:
             arg_list =[
                 self.settings.crop_app_path,
                 str(fn), 
@@ -271,7 +219,7 @@ class CropCallback(QObject):
         self.process.readyReadStandardError.connect(partial(handle_stderr, self))
         self.process.finished.connect(self.crop_finished)
         self.process.readyRead.connect(self.crop_data_read)
-        self.i_crop = 0
+        self.i_crop = start
         sublist = self.crop_job_list[0]
         del self.crop_job_list[0]
                     
@@ -391,6 +339,17 @@ class OcrCallback(QObject):
         self.pdf_list = []
         
         self.print_message.emit("=> Create OCR job list")
+        
+        if isinstance(self.settings.ocr_range, str):
+            _files = files
+        else:
+            rr = self.settings.ocr_range
+            start, end = rr[0], rr[1]
+            if start < 0 or end > nfiles:
+                self.print_message.emit(f"... Error: invalid range {rr}")
+                return
+            _files = files[start:end]
+            
         for fn in files:
             self.pdf_list.append(str(Path.joinpath(path1,"%s.pdf"%str(fn.stem))))
             arg_list =[
@@ -434,9 +393,9 @@ class QImgToPDF(QWidget):
     def __init__(self):
         super(QImgToPDF, self).__init__()
         self.cur_path = Path().absolute()
-        self.crop_setting = CropSetting()
-        self.ocr_setting = OcrSetting()
-        self.ocr_option = ocroption.OcrOption()
+        self.crop_setting = cropsetting.CropSetting()
+        self.ocr_setting = ocrsetting.OcrSetting()
+        self.ocr_source_option = self.ocr_setting.ocr_source
         
         self.initUI()
         if load_config(self.cur_path, [self.crop_setting, self.ocr_setting]):
@@ -685,19 +644,27 @@ class QImgToPDF(QWidget):
         self.global_msg.copy()
         
     def set_crop_setting_dlg(self):
-        pass
+        dlg = cropsettingdlg.CropSettingDlg(self.crop_setting)
+        
+        res = dlg.exec()
+        if res == 0: return
+       
     def set_ocr_setting_dlg(self):
         
-        dlg = ocroption.OcrOptioinDlg(self.ocr_option)
+        dlg = ocrsettingdlg.OcrSettingDlg(self.ocr_setting)
         res = dlg.exec()
         if res == 0: return
         else:
-            source_info = dlg.get_option()
-            self.ocr_setting.tesseract_path = dlg.get_tessaract_path()
-            self.ocr_option.input_type = source_info[0]
-            self.ocr_option.source_type = source_info[1:]
-            self.global_msg.appendPlainText("... Input Type: %s\n... Source Type: %s"%
-            (source_info[0],source_info[1:]))
+            self.global_msg.appendPlainText(
+            "... OCR Input Type: %s\n... OCR Source Type: %s"%
+            (self.ocr_source_option.input_type, 
+             self.ocr_source_option.source_type))
+             
+            if isinstance(self.ocr_setting.ocr_range, str):
+                self.global_msg.appendPlainText("... OCR Range : ALL")
+            else:
+                self.global_msg.appendPlainText("... OCR Range : %d-%d\n"%
+                (self.ocr_setting.ocr_range[0], self.ocr_setting.ocr_range[1]))
         
     def start_crop(self):
         self.get_crop_settings()
@@ -751,11 +718,11 @@ class QImgToPDF(QWidget):
         
         if pdf_file.exists():
            if msg.message_box("%s exist. Do you want to overwrite?"%str(pdf_file), 
-                              msg.message_yesandno) == QMessageBox.No: 
+                              msg.message_yesno) == QMessageBox.No: 
                 return 
         
         # process OCR for individual files
-        if self.ocr_option.input_type == ocroption.source_input_type_file:
+        if self.ocr_source_option.input_type == ocroption.source_input_type_file:
             # choose individual image files 
             source_path = self.src_ocr_img_path.text()
             if source_path == '':
@@ -765,14 +732,14 @@ class QImgToPDF(QWidget):
                     filter="Images (*.jpg *.png);;All files (*.*)")
        
             if files:
-                self.ocr_option.source_files = [Path(f) for f in files[0]]
+                self.ocr_source_option.source_files = [Path(f) for f in files[0]]
             else:
                 return
                 
-        self.ocr_callback = OcrCallback(self.ocr_setting, self.ocr_option)
+        self.ocr_callback = OcrCallback(self.ocr_setting, self.ocr_source_option)
         self.ocr_callback.print_message.connect(self.print_concurrent_message)
         self.ocr_callback.start()
-        self.ocr_option.source_files = None
+        self.ocr_source_option.source_files = None
         
     def stop_ocr(self):
         try: 
