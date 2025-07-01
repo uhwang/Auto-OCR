@@ -1,5 +1,6 @@
 '''
-    8/19/2024  Initial version
+    08/19/2024  Initial version
+    06/30/2025  Crop & OCR range added 
     
     Uisang Hwang
 
@@ -306,16 +307,16 @@ class OcrCallback(QObject):
         if isinstance(self.options.source_files, list):
             files = self.options.source_files
         else:
-            if self.options.input_type == ocroption.source_input_type_folder:
+            if self.options.input_type == ocrsetting.source_input_type_folder:
                 files = [f for f in path1.glob("*.*") 
                             if f.is_file() and f.suffix.lower() != ".pdf"]
             else:
                 files = []
-                if self.options.source_type == ocroption.source_type_jpg:
+                if self.options.source_type == ocrsetting.source_type_jpg:
                     jpg_files = [f for f in path1.glob("*.jpg") if f.is_file()]
                     files.extend(jpg_files)
                     
-                if self.options.source_type == ocroption.source_type_png:
+                if self.options.source_type == ocrsetting.source_type_png:
                     png_files = [f for f in path1.glob("*.png") if f.is_file()]
                     files.extend(png_files)
                 
@@ -722,7 +723,7 @@ class QImgToPDF(QWidget):
                 return 
         
         # process OCR for individual files
-        if self.ocr_source_option.input_type == ocroption.source_input_type_file:
+        if self.ocr_source_option.input_type == ocrsetting.source_input_type_file:
             # choose individual image files 
             source_path = self.src_ocr_img_path.text()
             if source_path == '':
