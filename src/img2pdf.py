@@ -319,8 +319,17 @@ class OcrCallback(QObject):
                 if self.options.source_type == ocrsetting.source_type_png:
                     png_files = [f for f in path1.glob("*.png") if f.is_file()]
                     files.extend(png_files)
-                
-        self.print_message.emit("=> %d files"%len(files))        
+                    
+        nfiles = len(files)
+        
+        if nfiles == 0:
+            self.print_message.emit("=> Error: no files to OCR")
+            self.print_message.emit("=> Path : %s"%self.settings.src_path)
+            self.print_message.emit("=> Type  : %s"%self.settings.src_type)
+            self.stop()
+            return   
+            
+        self.print_message.emit("=> %d files"%nfiles)        
         self.print_message.emit("=> Check output folder: %s"%str(path2))
         
         if path2.exists() == False:
@@ -342,6 +351,7 @@ class OcrCallback(QObject):
         self.print_message.emit("=> Create OCR job list")
         
         if isinstance(self.settings.ocr_range, str):
+            start, end = 0, nfiles
             _files = files
         else:
             rr = self.settings.ocr_range
@@ -351,7 +361,7 @@ class OcrCallback(QObject):
                 return
             _files = files[start:end]
             
-        for fn in files:
+        for fn in _files:
             self.pdf_list.append(str(Path.joinpath(path1,"%s.pdf"%str(fn.stem))))
             arg_list =[
                 self.settings.tesseract_path,
@@ -368,7 +378,7 @@ class OcrCallback(QObject):
         self.process.readyReadStandardError.connect(partial(handle_stderr, self))
         self.process.finished.connect(self.ocr_finished)
         self.process.readyRead.connect(self.ocr_data_read)
-        self.i_ocr = 0
+        self.i_ocr = start
         sublist = self.ocr_job_list[0]
         del self.ocr_job_list[0]
                     
