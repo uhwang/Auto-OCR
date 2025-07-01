@@ -76,7 +76,7 @@ class CropSettingDlg(QDialog):
         group.setLayout(button_layout)
         layout.addRow(group)
         
-        group = QGroupBox('Crop Page Rage')
+        group = QGroupBox('Crop Page Range(0 base)')
         hlayout = QHBoxLayout()
         
         self.crop_range_all = QLabel(_crop_range_all)
@@ -84,7 +84,7 @@ class CropSettingDlg(QDialog):
         if isinstance(cr, tuple):
             self.crop_range_part = QLineEdit("%d-%d"%(cr[0],cr[1]))
         else:
-            self.crop_range_part = QLineEdit("1-1")
+            self.crop_range_part = QLineEdit("0-1")
             
         #self.crop_range_part.setEnabled(False)
         self.input_type_button_clicked()
