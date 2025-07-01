@@ -131,7 +131,7 @@ class OcrSettingDlg(QDialog):
         group.setLayout(button_layout)
         layout.addRow(group)
         
-        group = QGroupBox('OCR Page Rage')
+        group = QGroupBox('OCR Page Rage(0 base)')
         hlayout = QHBoxLayout()
 
         self.ocr_range_all = QLabel(ocrsetting._ocr_range_all)
@@ -139,7 +139,7 @@ class OcrSettingDlg(QDialog):
         if isinstance(cr, tuple):
             self.ocr_range_part = QLineEdit("%d-%d"%(cr[0],cr[1]))
         else:
-            self.ocr_range_part = QLineEdit("1-1")
+            self.ocr_range_part = QLineEdit("0-1")
             
         #self.crop_range_part.setEnabled(False)
         self.range_type_button_clicked()
